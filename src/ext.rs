@@ -38,7 +38,7 @@ cfg_if! {
 
 use std::time::Duration;
 
-#[cfg(any(unix, target_os = "redox", target_os = "wasi"))] use libc::*;
+#[cfg(any(unix, target_os = "redox", target_os = "wasi"))] use sgx_libc::*;
 #[cfg(any(unix, target_os = "redox"))] use std::os::unix::prelude::*;
 #[cfg(target_os = "wasi")] use std::os::wasi::prelude::*;
 #[cfg(target_os = "redox")] pub type Socket = usize;
@@ -69,6 +69,7 @@ pub fn set_opt<T: Copy>(_sock: Socket, _opt: c_int, _val: c_int,
 #[cfg(not(target_os = "wasi"))]
 pub fn set_opt<T: Copy>(sock: Socket, opt: c_int, val: c_int,
                        payload: T) -> io::Result<()> {
+    use sys::c::setsockopt;
     unsafe {
         let payload = &payload as *const T as *const c_void;
         #[cfg(target_os = "redox")]
@@ -85,6 +86,7 @@ pub fn get_opt<T: Copy>(_sock: Socket, _opt: c_int, _val: c_int) -> io::Result<T
 }
 #[cfg(not(target_os = "wasi"))]
 pub fn get_opt<T: Copy>(sock: Socket, opt: c_int, val: c_int) -> io::Result<T> {
+    use sys::c::getsockopt;
     unsafe {
         let mut slot: T = mem::zeroed();
         let mut len = mem::size_of::<T>() as socklen_t;
@@ -669,7 +671,7 @@ cfg_if! {
     } else if #[cfg(any(target_os = "openbsd", target_os = "netbsd"))] {
         use libc::SO_KEEPALIVE as KEEPALIVE_OPTION;
     } else if #[cfg(unix)] {
-        use libc::TCP_KEEPIDLE as KEEPALIVE_OPTION;
+        use sgx_libc::TCP_KEEPIDLE as KEEPALIVE_OPTION;
     } else if #[cfg(target_os = "redox")] {
         use libc::TCP_KEEPIDLE as KEEPALIVE_OPTION;
     } else {
@@ -1207,6 +1209,7 @@ impl UdpSocketExt for UdpSocket {
 
     #[cfg(unix)]
     fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        use sys::c::send;
         unsafe {
             ::cvt(send(self.as_sock() as c_int, buf.as_ptr() as *const _, buf.len(), 0)).map(|n| n as usize)
         }
@@ -1248,6 +1251,7 @@ impl UdpSocketExt for UdpSocket {
 
     #[cfg(unix)]
     fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        use sys::c::recv;
         unsafe {
             ::cvt(recv(self.as_sock(), buf.as_mut_ptr() as *mut _, buf.len(), 0))
                 .map(|n| n as usize)
@@ -1317,9 +1321,9 @@ fn set_nonblocking(sock: Socket, nonblocking: bool) -> io::Result<()> {
 
 #[cfg(unix)]
 fn set_nonblocking(sock: Socket, nonblocking: bool) -> io::Result<()> {
-    let mut nonblocking = nonblocking as c_ulong;
+    let mut nonblocking = nonblocking as c_int;
     ::cvt(unsafe {
-        ioctl(sock, FIONBIO, &mut nonblocking)
+        c::ioctl_arg1(sock, FIONBIO, &mut nonblocking)
     }).map(|_| ())
 }
 

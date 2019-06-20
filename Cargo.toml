@@ -10,12 +10,16 @@ documentation = "https://doc.rust-lang.org/net2-rs/"
 description = """
 Extensions to the standard library's networking types as proposed in RFC 1158.
 """
+exclude = ["/sgx/*"]
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["handleapi", "winsock2", "ws2def", "ws2ipdef", "ws2tcpip"] }
 
-[target.'cfg(any(target_os="redox", unix, target_os="wasi"))'.dependencies]
-libc = "0.2.54"
+#[target.'cfg(any(target_os="redox", unix, target_os="wasi"))'.dependencies]
+#libc = "0.2.54"
+[target.'cfg(not(target_env = "sgx"))'.dependencies]
+sgx_libc = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git", optional = true }
+sgx_tstd = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git", features = ["net"], optional = true }
 
 [dependencies]
 cfg-if = "0.1"
@@ -23,4 +27,5 @@ cfg-if = "0.1"
 [features]
 nightly = []
 duration = []
-default = ["duration"]
+default = ["duration", "mesalock_sgx"]
+mesalock_sgx = ["sgx_tstd", "sgx_libc"]
