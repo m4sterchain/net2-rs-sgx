@@ -11,6 +11,8 @@
 use std::fmt;
 use std::io;
 use std::mem;
+use std::borrow::ToOwned;
+use std::convert::TryInto;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 #[cfg(any(unix, target_os = "redox", target_os = "wasi"))]
 use sgx_libc::c_int;
@@ -30,9 +32,9 @@ impl Socket {
     }
 
     pub fn bind(&self, addr: &SocketAddr) -> io::Result<()> {
-        let (addr, len) = addr2raw(addr);
+        let sock_addr = addr.to_owned().into();
         unsafe {
-            ::cvt_ocall(c::bind(self.inner.raw(), addr, len as c::socklen_t)).map(|_| ())
+            ::cvt_ocall(c::bind(self.inner.raw(), &sock_addr)).map(|_| ())
         }
     }
 
@@ -43,20 +45,16 @@ impl Socket {
     }
 
     pub fn connect(&self, addr: &SocketAddr) -> io::Result<()> {
-        let (addr, len) = addr2raw(addr);
+        let sock_addr = addr.to_owned().into();
         unsafe {
-            ::cvt_ocall(c::connect(self.inner.raw(), addr, len)).map(|_| ())
+            ::cvt_ocall(c::connect(self.inner.raw(), &sock_addr)).map(|_| ())
         }
     }
 
     pub fn getsockname(&self) -> io::Result<SocketAddr> {
         unsafe {
-            let mut storage: c::sockaddr_storage = mem::zeroed();
-            let mut len = mem::size_of_val(&storage) as c::socklen_t;
-            ::cvt_ocall(c::getsockname(self.inner.raw(),
-                                      &mut storage as *mut _ as *mut _,
-                                      &mut len))?;
-            raw2addr(&storage, len)
+            let sa = ::cvt_ocall(c::getsockname(self.inner.raw()))?;
+            sa.try_into()
         }
     }
 }

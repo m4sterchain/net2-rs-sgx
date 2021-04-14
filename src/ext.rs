@@ -1211,7 +1211,7 @@ impl UdpSocketExt for UdpSocket {
     fn send(&self, buf: &[u8]) -> io::Result<usize> {
         use sys::c::send;
         unsafe {
-            ::cvt_ocall(send(self.as_sock() as c_int, buf.as_ptr() as *const _, buf.len(), 0)).map(|n| n as usize)
+            ::cvt_ocall(send(self.as_sock() as c_int, buf, 0)).map(|n| n as usize)
         }
     }
 
@@ -1253,7 +1253,7 @@ impl UdpSocketExt for UdpSocket {
     fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
         use sys::c::recv;
         unsafe {
-            ::cvt_ocall(recv(self.as_sock(), buf.as_mut_ptr() as *mut _, buf.len(), 0))
+            ::cvt_ocall(recv(self.as_sock(), buf, 0))
                 .map(|n| n as usize)
         }
     }
