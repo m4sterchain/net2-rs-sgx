@@ -32,20 +32,20 @@ impl Socket {
     pub fn bind(&self, addr: &SocketAddr) -> io::Result<()> {
         let (addr, len) = addr2raw(addr);
         unsafe {
-            ::cvt(c::bind(self.inner.raw(), addr, len as c::socklen_t)).map(|_| ())
+            ::cvt_ocall(c::bind(self.inner.raw(), addr, len as c::socklen_t)).map(|_| ())
         }
     }
 
     pub fn listen(&self, backlog: i32) -> io::Result<()> {
         unsafe {
-            ::cvt(c::listen(self.inner.raw(), backlog)).map(|_| ())
+            ::cvt_ocall(c::listen(self.inner.raw(), backlog)).map(|_| ())
         }
     }
 
     pub fn connect(&self, addr: &SocketAddr) -> io::Result<()> {
         let (addr, len) = addr2raw(addr);
         unsafe {
-            ::cvt(c::connect(self.inner.raw(), addr, len)).map(|_| ())
+            ::cvt_ocall(c::connect(self.inner.raw(), addr, len)).map(|_| ())
         }
     }
 
@@ -53,7 +53,7 @@ impl Socket {
         unsafe {
             let mut storage: c::sockaddr_storage = mem::zeroed();
             let mut len = mem::size_of_val(&storage) as c::socklen_t;
-            ::cvt(c::getsockname(self.inner.raw(),
+            ::cvt_ocall(c::getsockname(self.inner.raw(),
                                       &mut storage as *mut _ as *mut _,
                                       &mut len))?;
             raw2addr(&storage, len)

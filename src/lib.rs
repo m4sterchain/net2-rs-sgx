@@ -41,6 +41,8 @@
        html_root_url = "https://doc.rust-lang.org/net2-rs")]
 #![deny(missing_docs, warnings)]
 
+#![allow(dead_code)]
+
 #![cfg_attr(target_os = "wasi", feature(wasi_ext))]
 
 #![cfg_attr(all(feature = "mesalock_sgx",
@@ -133,4 +135,9 @@ trait FromInner {
 trait IntoInner {
     type Inner;
     fn into_inner(self) -> Self::Inner;
+}
+
+use sgx_libc::OCallResult;
+fn cvt_ocall<T>(result: OCallResult<T>) -> io::Result<T> {
+    result.map_err(|e| e.into())
 }

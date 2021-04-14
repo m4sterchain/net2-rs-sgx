@@ -74,7 +74,7 @@ pub fn set_opt<T: Copy>(sock: Socket, opt: c_int, val: c_int,
         let payload = &payload as *const T as *const c_void;
         #[cfg(target_os = "redox")]
         let sock = sock as c_int;
-        ::cvt(setsockopt(sock, opt, val, payload as *const _,
+        ::cvt_ocall(setsockopt(sock, opt, val, payload as *const _,
                               mem::size_of::<T>() as socklen_t))?;
     }
     Ok(())
@@ -92,7 +92,7 @@ pub fn get_opt<T: Copy>(sock: Socket, opt: c_int, val: c_int) -> io::Result<T> {
         let mut len = mem::size_of::<T>() as socklen_t;
         #[cfg(target_os = "redox")]
         let sock = sock as c_int;
-        ::cvt(getsockopt(sock, opt, val,
+        ::cvt_ocall(getsockopt(sock, opt, val,
                               &mut slot as *mut _ as *mut _,
                               &mut len))?;
         assert_eq!(len as usize, mem::size_of::<T>());
@@ -1211,7 +1211,7 @@ impl UdpSocketExt for UdpSocket {
     fn send(&self, buf: &[u8]) -> io::Result<usize> {
         use sys::c::send;
         unsafe {
-            ::cvt(send(self.as_sock() as c_int, buf.as_ptr() as *const _, buf.len(), 0)).map(|n| n as usize)
+            ::cvt_ocall(send(self.as_sock() as c_int, buf.as_ptr() as *const _, buf.len(), 0)).map(|n| n as usize)
         }
     }
 
@@ -1253,7 +1253,7 @@ impl UdpSocketExt for UdpSocket {
     fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
         use sys::c::recv;
         unsafe {
-            ::cvt(recv(self.as_sock(), buf.as_mut_ptr() as *mut _, buf.len(), 0))
+            ::cvt_ocall(recv(self.as_sock(), buf.as_mut_ptr() as *mut _, buf.len(), 0))
                 .map(|n| n as usize)
         }
     }
@@ -1322,7 +1322,7 @@ fn set_nonblocking(sock: Socket, nonblocking: bool) -> io::Result<()> {
 #[cfg(unix)]
 fn set_nonblocking(sock: Socket, nonblocking: bool) -> io::Result<()> {
     let mut nonblocking = nonblocking as c_int;
-    ::cvt(unsafe {
+    ::cvt_ocall(unsafe {
         c::ioctl_arg1(sock, FIONBIO, &mut nonblocking)
     }).map(|_| ())
 }
